@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/Bobby-P-dev/FinalProject1_kel7/initializers"
 	"github.com/Bobby-P-dev/FinalProject1_kel7/models"
@@ -14,7 +15,7 @@ func CreateTodo(c *gin.Context) {
 		Description string
 	}
 
-	c.Bind(&todo)
+	c.ShouldBindJSON(&todo)
 	todos := models.Todo{Name: todo.Name, Description: todo.Description}
 	result := initializers.DB.Create(&todos)
 
@@ -32,14 +33,12 @@ func CreateTodo(c *gin.Context) {
 func GetAllTodos(c *gin.Context) {
 	var todos []models.Todo
 
-	// Querying to find todo datas.
 	err := initializers.DB.Find(&todos)
 	if err.Error != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Error getting data"})
 		return
 	}
 
-	// Creating http response
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "200",
 		"message": "Success Get data",
@@ -48,35 +47,80 @@ func GetAllTodos(c *gin.Context) {
 
 }
 
-func UpdateTodo(c *gin.Context) {
-	id := c.Param("id")
+func GetById(c *gin.Context) {
+	db := initializers.GetDB()
+	todoId, _ := strconv.Atoi(c.Param("id"))
 
-	var todo struct {
-		Name        string
-		Description string
+	var todos []models.Todo
+	Todos := models.Todo{}
+
+	Todos.ID = uint(todoId)
+
+	err := db.First(&Todos, todoId).Error
+
+	if err != nil {
+		return
 	}
 
-	c.Bind(&todo)
+	err = db.Model(&Todos).Where("id = ?", todoId).Find(&todos, Todos).Error
 
-	var update models.Todo
-	initializers.DB.First(&update, id)
-
-	initializers.DB.Model(&update).Updates(models.Todo{
-		Name: todo.Name, Description: todo.Description})
-
-	c.JSON(200, gin.H{
-		"update": update,
+	if err != nil {
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"data": Todos,
 	})
+
 }
 
 func DeleteTodo(c *gin.Context) {
-	id := c.Param("id")
+	db := initializers.GetDB()
+	todoId, _ := strconv.Atoi(c.Param("id"))
+	Todos := models.Todo{}
 
-	initializers.DB.Delete(&models.Todo{}, id)
+	Todos.ID = uint(todoId)
+
+	err := db.First(&Todos, todoId).Error
+
+	if err != nil {
+		return
+	}
+	db.Model(&Todos).Delete(&Todos)
 
 	c.JSON(http.StatusOK, gin.H{
 		"status":  "200",
 		"message": "Success delete data",
-		"data":    id,
 	})
+}
+
+func PutById(c *gin.Context) {
+	db := initializers.GetDB()
+	todoId, _ := strconv.Atoi(c.Param("id"))
+	Todos := models.Todo{}
+
+	Todos.ID = uint(todoId)
+
+	var updateTodo struct {
+		Name        string `json:"name"`
+		Description string `json:"description"`
+	}
+	c.Bind(&updateTodo)
+
+	err := db.First(&Todos, todoId).Error
+
+	if err != nil {
+		return
+	}
+
+	err = db.Model(&Todos).Where("id = ?", todoId).Updates(&models.Todo{
+		Name: updateTodo.Name, Description: updateTodo.Description,
+	}).Error
+
+	if err != nil {
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"data": Todos,
+	})
+
 }

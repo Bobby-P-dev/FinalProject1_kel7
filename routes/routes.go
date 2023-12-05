@@ -10,7 +10,8 @@ func Routes() {
 
 	route.POST("/todo", controllers.CreateTodo)
 	route.GET("/todo", controllers.GetAllTodos)
-	route.PUT("/todo/:id", controllers.UpdateTodo)
+	route.GET("/todo/:id", controllers.GetById)
+	route.PUT("/todo/:id", controllers.PutById)
 	route.DELETE("/todo/:id", controllers.DeleteTodo)
 
 	route.Run()
